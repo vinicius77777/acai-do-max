@@ -1,0 +1,277 @@
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(135deg, #2b0040, #000);
+  background-attachment: fixed;
+  color: #fff;
+}
+
+.pedidos-container {
+  padding: 30px;
+  max-width: 1260px; /* aumentei o container */
+  margin: 0 auto;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.titulo {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 25px;
+  color: #fff;
+}
+
+.aviso {
+  background: rgba(255, 255, 0, 0.15);
+  border: 1px solid rgba(255, 255, 0, 0.3);
+  color: #ffeb3b;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.botoes-topo {
+  color: #fff;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.btn-novo {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-novo:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.btn-exportar {
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-exportar.pdf {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+.btn-exportar.excel {
+  background: rgba(40, 167, 69, 0.8);
+}
+
+.btn-exportar:hover {
+  transform: scale(1.05);
+}
+
+.pedidos-tabela {
+  width: 100%; /* ocupar todo o container, sem passar */
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.pedidos-tabela th,
+.pedidos-tabela td {
+  padding: 8px; /* diminui um pouquinho o padding horizontal */
+  text-align: center;
+  color: white;
+  min-width: 80px;
+}
+
+/* aumentar a largura das colunas de texto pra caber a seta */
+.pedidos-tabela th:nth-child(1),
+.pedidos-tabela td:nth-child(1), /* Descrição */
+.pedidos-tabela th:nth-child(4),
+.pedidos-tabela td:nth-child(4) { /* Localidade */
+  width: 180px; /* maior que antes para a seta ficar ao lado */
+}
+
+
+/* mantém o resto igual */
+.pedidos-tabela th {
+  background: rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+
+/* ====== BOTÕES DA TABELA ====== */
+.pedidos-tabela .btn-editar,
+.pedidos-tabela .btn-excluir {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  margin: 2px;
+}
+
+.pedidos-tabela .btn-editar {
+  background: #00c853;
+  color: white;
+}
+
+.pedidos-tabela .btn-editar:hover {
+  background: #00e676;
+}
+
+.pedidos-tabela .btn-excluir {
+  background: #e53935;
+  color: white;
+}
+
+.pedidos-tabela .btn-excluir:hover {
+  background: #ef5350;
+}
+
+/* ====== MODAL ====== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 9999;
+}
+
+.modal {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 30px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  margin-top: 800px;
+  margin-left: -30px;
+  animation: fadeIn 0.25s ease;
+  z-index: 99999;
+
+  /* AQUI ESTÁ TUDO QUE RESOLVE O PROBLEMA */
+  position: relative;  
+  top: 0;
+  left: 0;
+  transform: none;  
+}
+
+/* fade sem mexer no translate */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.modal h3 {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.modal input {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  color: white;
+  outline: none;
+}
+
+.modal input:focus {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ====== LISTA DE SUGESTÕES ====== */
+.lista-sugestoes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: rgba(0, 0, 0, 0);
+  border-radius: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: -5px;
+}
+
+.item-sugestao {
+  padding: 10px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.item-sugestao:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.valor-total-preview {
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.modal-acoes {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.btn-salvar,
+.btn-cancelar {
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-salvar {
+  background: #00c853;
+  color: white;
+}
+
+.btn-cancelar {
+  background: #e53935;
+  color: white;
+}
+
+.btn-salvar:hover {
+  background: #00e676;
+}
+
+.btn-cancelar:hover {
+  background: #ef5350;
+}
