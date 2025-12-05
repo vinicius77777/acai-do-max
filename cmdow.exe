@@ -1,0 +1,44 @@
+@echo off
+title Iniciando Sistema Açaí do max
+
+echo ========================================
+echo Iniciando Servidor e Sistema Açaí do max...
+echo ========================================
+echo.
+
+REM -- 1) Iniciar o XAMPP automaticamente
+echo Iniciando Apache e MySQL...
+cd /d "C:\xampp"
+start "" xampp_start.exe
+
+REM -- 2) Esperar alguns segundos
+timeout /t 3 >nul
+
+REM -- 3) Iniciar o backend Node.js
+echo Iniciando Backend...
+cd /d "C:\qolop-main\backend"
+start "backend" cmd /k "npm run dev"
+
+REM -- 4) Esperar
+timeout /t 2 >nul
+
+REM -- 5) Iniciar o frontend Vite
+echo Iniciando Frontend...
+cd /d "C:\qolop-main\frontend"
+start "frontend" cmd /k "npm run dev"
+
+REM -- 6) Abrir o navegador
+echo Abrindo navegador...
+start "" http://localhost:5173
+
+REM -- 7) Aguardar janelas abrirem
+timeout /t 5 >nul
+
+REM -- 8) Minimizar usando CMDOW
+cmdow "backend" /min
+cmdow "frontend" /min
+
+echo ========================================
+echo Sistema Açaí do max iniciado com sucesso!
+echo ========================================
+pause
