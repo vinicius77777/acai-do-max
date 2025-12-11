@@ -39,11 +39,16 @@ app.post("/estoque", async (req: Request, res: Response) => {
     });
 
     if (itemExistente) {
-      const novaQuantidade =
+      const novaQuantidade = 
         (itemExistente.estoque_quantidade || 0) + quantidadeEntrada;
+
+      // soma total + recalcula unitário REAL
       const novoValorTotal =
-        valorTotalEntrada ||
-        Number(itemExistente.valor_total_entrada || 0);
+        Number(itemExistente.valor_total_entrada || 0) +
+        valorTotalEntrada;
+
+      const novoValorUnitario =
+        novaQuantidade > 0 ? novoValorTotal / novaQuantidade : 0;
 
       const atualizado = await prisma.estoque_registro.update({
         where: { codigoItem: itemExistente.codigoItem },
@@ -51,8 +56,16 @@ app.post("/estoque", async (req: Request, res: Response) => {
           quant_entrada:
             (itemExistente.quant_entrada || 0) + quantidadeEntrada,
           estoque_quantidade: novaQuantidade,
+
           valor_total_entrada: new Prisma.Decimal(novoValorTotal),
-          estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
+          estoque_valor_unitario: new Prisma.Decimal(novoValorUnitario),
+
+          // agora atualiza nota/fornecedor sempre
+          nota_fiscal: data.nota_fiscal || itemExistente.nota_fiscal,
+          fornecedor: data.fornecedor || itemExistente.fornecedor,
+          data_vencimento: data.data_vencimento || itemExistente.data_vencimento,
+
+          // valor venda mantém antigo se não enviado
           valor_venda: data.valor_venda
             ? new Prisma.Decimal(Number(data.valor_venda))
             : itemExistente.valor_venda,
@@ -60,36 +73,38 @@ app.post("/estoque", async (req: Request, res: Response) => {
       });
 
       return res.json({
-        message: "Item já existia — estoque somado com sucesso.",
+        message: "Item existia — estoque somado corretamente.",
         item: atualizado,
       });
-    } else {
-      const novoItem = await prisma.estoque_registro.create({
-        data: {
-          descricao,
-          mes_entrada: data.mes_entrada || null,
-          dia_entrada: data.dia_entrada ? Number(data.dia_entrada) : null,
-          quant_entrada: quantidadeEntrada,
-          unidade_entrada: data.unidade_entrada || null,
-          nota_fiscal: data.nota_fiscal || null,
-          fornecedor: data.fornecedor || null,
-          valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
-          data_vencimento: data.data_vencimento || null,
-          estoque_quantidade: quantidadeEntrada,
-          estoque_unidade:
-            data.estoque_unidade || data.unidade_entrada || null,
-          estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
-          valor_venda: data.valor_venda
-            ? new Prisma.Decimal(Number(data.valor_venda))
-            : null,
-        },
-      });
-
-      return res.status(201).json({
-        message: "Novo item criado com sucesso.",
-        item: novoItem,
-      });
     }
+
+    /* ITEM NOVO */
+    const novoItem = await prisma.estoque_registro.create({
+      data: {
+        descricao,
+        mes_entrada: data.mes_entrada || null,
+        dia_entrada: data.dia_entrada ? Number(data.dia_entrada) : null,
+        quant_entrada: quantidadeEntrada,
+        unidade_entrada: data.unidade_entrada || null,
+        nota_fiscal: data.nota_fiscal || null,
+        fornecedor: data.fornecedor || null,
+        valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
+        data_vencimento: data.data_vencimento || null,
+        estoque_quantidade: quantidadeEntrada,
+        estoque_unidade:
+          data.estoque_unidade || data.unidade_entrada || null,
+        estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
+        valor_venda: data.valor_venda
+          ? new Prisma.Decimal(Number(data.valor_venda))
+          : null,
+      },
+    });
+
+    return res.status(201).json({
+      message: "Novo item criado com sucesso.",
+      item: novoItem,
+    });
+
   } catch (error) {
     console.error("❌ Erro ao criar/somar item:", error);
     return res
@@ -97,6 +112,7 @@ app.post("/estoque", async (req: Request, res: Response) => {
       .json({ error: "Erro ao criar ou atualizar estoque." });
   }
 });
+
 
 // Listar estoque
 app.get("/estoque", async (_req: Request, res: Response) => {
@@ -122,58 +138,33 @@ app.put("/estoque/:codigoItem", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Item não encontrado." });
     }
 
-    const {
-      descricao,
-      fornecedor,
-      quant_entrada,
-      valor_total_entrada,
-      estoque_quantidade,
-      valor_venda,
-    } = data;
+    const novaEntrada = Number(data.quant_entrada || itemAtual.quant_entrada);
+    const novaQuantidade =
+      (itemAtual.estoque_quantidade || 0) +
+      (novaEntrada - (itemAtual.quant_entrada || 0));
 
-    const novoQuantEntrada =
-      typeof quant_entrada !== "undefined"
-        ? Number(quant_entrada)
-        : Number(itemAtual.quant_entrada || 0);
+    const novoValorTotal =
+      Number(data.valor_total_entrada || itemAtual.valor_total_entrada);
 
-    const novoValorTotalEntrada =
-      typeof valor_total_entrada !== "undefined"
-        ? Number(valor_total_entrada)
-        : Number(itemAtual.valor_total_entrada || 0);
-
-    let novoValorUnitario: Prisma.Decimal | null = null;
-
-    if (novoQuantEntrada > 0) {
-      novoValorUnitario = new Prisma.Decimal(
-        novoValorTotalEntrada / novoQuantEntrada
-      );
-    } else {
-      novoValorUnitario = itemAtual.estoque_valor_unitario ?? null;
-    }
+    const novoValorUnitario =
+      novaQuantidade > 0 ? novoValorTotal / novaQuantidade : 0;
 
     const atualizado = await prisma.estoque_registro.update({
       where: { codigoItem },
       data: {
-        descricao: descricao ? String(descricao).trim() : undefined,
-        fornecedor: fornecedor ?? undefined,
-        quant_entrada:
-          typeof quant_entrada !== "undefined"
-            ? novoQuantEntrada
-            : undefined,
-        valor_total_entrada:
-          typeof valor_total_entrada !== "undefined"
-            ? new Prisma.Decimal(novoValorTotalEntrada)
-            : undefined,
-        estoque_quantidade:
-          typeof estoque_quantidade !== "undefined"
-            ? Number(estoque_quantidade)
-            : undefined,
-        estoque_valor_unitario:
-          novoValorUnitario !== null ? novoValorUnitario : undefined,
-        valor_venda:
-          typeof valor_venda !== "undefined"
-            ? new Prisma.Decimal(Number(valor_venda))
-            : undefined,
+        descricao: data.descricao || itemAtual.descricao,
+        fornecedor: data.fornecedor || itemAtual.fornecedor,
+        nota_fiscal: data.nota_fiscal || itemAtual.nota_fiscal,
+
+        quant_entrada: novaEntrada,
+        estoque_quantidade: novaQuantidade,
+
+        valor_total_entrada: new Prisma.Decimal(novoValorTotal),
+        estoque_valor_unitario: new Prisma.Decimal(novoValorUnitario),
+
+        valor_venda: data.valor_venda
+          ? new Prisma.Decimal(Number(data.valor_venda))
+          : itemAtual.valor_venda,
       },
     });
 
@@ -182,6 +173,7 @@ app.put("/estoque/:codigoItem", async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Erro ao atualizar item." });
   }
 });
+
 
 // Deletar item
 app.delete("/estoque/:codigoItem", async (req: Request, res: Response) => {
