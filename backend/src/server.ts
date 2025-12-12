@@ -209,7 +209,7 @@ app.post("/pedidos/prever", async (req: Request, res: Response) => {
    // identificar se precisa aplicar desconto especial
 const isDescontoCliente =
   (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
-  (responsavel === "Ericsson" && saida_loja === "Açaí da Ponte");
+  (responsavel === "Ericson" && saida_loja === "Estação Açaí");
 
 const nomeLower = descricaoTrim.toLowerCase();
 
@@ -294,11 +294,9 @@ app.post("/pedidos", async (req: Request, res: Response) => {
     let valorTotalSaida = valorUnitarioVenda * quantidadeSaida;
 
     
-    /* ===== DESCONTO ESPECIAL (Rodrigo / Ericsson) ===== */
-
     const isDescontoCliente =
   (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
-  (responsavel === "Ericsson" && saida_loja === "Açaí da Ponte");
+  (responsavel === "Ericson" && saida_loja === "Estação Açaí");
 
 const nomeLower = descricaoTrim.toLowerCase();
 
