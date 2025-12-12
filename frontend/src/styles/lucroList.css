@@ -1,0 +1,304 @@
+/* ANIMAÇÕES GERAIS --------------------------------------------- */
+
+/* fade suave */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* deslizar de cima */
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* deslizar da esquerda */
+@keyframes slideLeft {
+  from { transform: translateX(-25px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* brilho pulsante (neon discreto) */
+@keyframes softGlow {
+  0% { box-shadow: 0 0 6px rgba(255,255,255,0.05); }
+  50% { box-shadow: 0 0 14px rgba(255,255,255,0.12); }
+ 100% { box-shadow: 0 0 6px rgba(255,255,255,0.05); }
+}
+
+
+/* tilt no hover */
+@keyframes hoverTilt {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(1deg); }
+ 100% { transform: rotate(0deg); }
+}
+
+/* borda neon animada */
+@keyframes neonBorder {
+  0% { border-color: #444; }
+  50% { border-color: #666; }
+ 100% { border-color: #444; }
+}
+
+/* animação do clique nos botões */
+@keyframes press {
+  0% { transform: scale(1); }
+ 50% { transform: scale(0.94); }
+100% { transform: scale(1); }
+}
+
+/* brilho circular no hover do botão */
+@keyframes radialGlow {
+  0% { opacity: 0; transform: scale(0.2); }
+100% { opacity: 0.25; transform: scale(2.5); }
+}
+
+/* animação zebrada lenta da tabela */
+@keyframes zebraShift {
+  0% { background: #252525; }
+ 50% { background: #282828; }
+100% { background: #252525; }
+}
+
+/* sombra respirando */
+@keyframes breathingShadow {
+  0% { box-shadow: 0 0 6px rgba(0,0,0,0.3); }
+ 50% { box-shadow: 0 0 14px rgba(0,0,0,0.45); }
+100% { box-shadow: 0 0 6px rgba(0,0,0,0.3); }
+}
+
+/* borda piscando */
+@keyframes borderPulse {
+  0% { border-color: #333; }
+ 50% { border-color: #777; }
+100% { border-color: #333; }
+}
+
+/* brilho constante nos inputs */
+@keyframes inputGlow {
+  0% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
+ 50% { box-shadow: 0 0 8px rgba(255,255,255,0.25); }
+100% { box-shadow: 0 0 4px rgba(255,255,255,0.1); }
+}
+
+/* -------------------------------------------------------------- */
+
+
+/* CONTAINER PRINCIPAL */
+.lucro-container {
+  width: 95%;
+  margin: 20px auto;
+  background: #1c1c1c;
+  padding: 25px;
+  border-radius: 12px;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(0,0,0,0.4);
+  animation: fadeIn 0.8s ease-out, breathingShadow 6s infinite ease-in-out;
+}
+
+/* TÍTULO */
+.lucro-container h2 {
+  text-align: center;
+  font-size: 26px;
+  margin-bottom: 25px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  animation: slideDown 0.8s ease-out;
+}
+
+/* FILTROS */
+.filtros {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  background: #222;
+  padding: 12px 15px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+  animation: slideLeft 0.7s ease-out;
+}
+
+/* Inputs e Selects com animações */
+.filtros input,
+.filtros select {
+  padding: 10px 12px;
+  background: linear-gradient(145deg, #2a2a2a, #242424);
+  color: #fff;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  outline: none;
+  font-size: 15px;
+  transition: 0.25s;
+  min-width: 150px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  animation: fadeIn 0.6s ease-out, softGlow 5s infinite ease-in-out;
+}
+
+.filtros input:focus,
+.filtros select:focus {
+  border-color: #aaa;
+  animation: inputGlow 2s infinite ease-in-out;
+}
+
+/* Placeholder suave */
+.filtros input::placeholder {
+  color: #aaa;
+}
+  
+/* BOTÕES */
+.btn-exportar {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.25s;
+  font-size: 15px;
+  min-width: 130px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.7s ease-out;
+}
+
+/* Efeito de clique */
+.btn-exportar:active {
+  animation: press 0.2s forwards;
+}
+
+/* Glow circular ao passar o mouse */
+.btn-exportar:hover::before {
+  content: "";
+  position: absolute;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, rgba(255,255,255,0.25), transparent);
+  top: -20%;
+  left: -20%;
+  border-radius: 50%;
+  animation: radialGlow 0.5s ease-out forwards;
+}
+
+.btn-exportar.pdf {
+  background: #c42e2e;
+  color: #fff;
+}
+
+.btn-exportar.pdf:hover {
+  background: #a62626;
+}
+
+.btn-exportar.excel {
+  background: #2e8b57;
+  color: #fff;
+}
+
+.btn-exportar.excel:hover {
+  background: #257346;
+}
+
+/* VALOR TOTAL */
+.valor-total-mes {
+  margin: 15px 0;
+  font-size: 18px;
+  font-weight: bold;
+  background: #262626;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  animation: fadeIn 0.7s ease-out;
+}
+
+/* GRÁFICO */
+.chart-container {
+  width: 100%;
+  height: 260px;
+  background: #262626;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin: 25px 0;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
+  animation: softGlow 5s infinite ease-in-out;
+}
+
+/* TABELA */
+.lucro-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: #202020;
+  border-radius: 10px;
+  overflow: hidden;
+  animation: fadeIn 0.9s ease-out;
+}
+
+/* CABEÇALHO */
+.lucro-tabela thead {
+  background: #333;
+}
+
+.lucro-tabela th {
+  padding: 12px;
+  text-align: left;
+  color: #eee;
+  cursor: pointer;
+  font-weight: bold;
+  border-bottom: 2px solid #444;
+  transition: 0.2s;
+}
+
+.lucro-tabela th:hover {
+  background: #3d3d3d;
+  animation: hoverTilt 0.4s ease-in-out;
+}
+
+/* CELULAS */
+.lucro-tabela td {
+  padding: 10px;
+  border-bottom: 1px solid #333;
+}
+
+/* LINHA ZEBRADA */
+.lucro-tabela tbody tr:nth-child(even) {
+  background: #252525;
+  animation: zebraShift 7s infinite alternate ease-in-out;
+}
+
+/* LUCRO POSITIVO/NEGATIVO */
+.positivo {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.negativo {
+  color: #e53935;
+  font-weight: bold;
+}
+
+/* TOTAL */
+.total-row {
+  background: #383838 !important;
+  font-weight: bold;
+  animation: pulse 3s infinite ease-in-out;
+}
+
+/* R
+}
+
+/* OPÇÕES DO SELECT */
+.filtros select option {
+  background-color: #1f1f1f;
+  color: #fff;
+  padding: 10px;
+}
+
+.filtros select option:hover {
+  background-color: #333;
+}
+
+.filtros select option:checked {
+  background-color: #444;
+  color: #fff;
+}

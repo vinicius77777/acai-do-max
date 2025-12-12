@@ -1,0 +1,60 @@
+.menu {
+  display: grid;
+  grid-template-columns: 150px 1fr 150px; /* logo / links / espaço vazio */
+  background: linear-gradient(180deg, #360a4d, #1e0827);
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Logo no canto esquerdo */
+.logo {
+  max-width: 80px;
+  max-height: 60px;
+  width: 80%;
+  justify-self: start; /* força ficar na esquerda */
+}
+
+/* Agrupa os links no centro */
+.menu-center {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Links */
+.menu-link {
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.menu-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 0%;
+  height: 2px;
+  background-color: #c052ff;
+  transition: 0.3s ease;
+}
+
+.menu-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.menu-link:hover::after {
+  width: 100%;
+}
+.menu-link:active {
+  transform: translateY(0);
+}

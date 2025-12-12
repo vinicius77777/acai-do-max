@@ -1,0 +1,430 @@
+/* ====== FUNDO GERAL ====== */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(135deg, #2b0040, #000);
+  color: #fff;
+}
+
+/* ====== CONTAINER ====== */
+.estoque-container {
+  max-width: 1600px;
+  min-height: 500px;
+  margin: 50px auto;
+  padding: 30px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08); /* transparente opaco */
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* ====== TÍTULO E HEADER ====== */
+.estoque-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 18px 25px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(8px);
+}
+
+.estoque-titulo {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* ====== BOTÃO ADICIONAR ====== */
+.btn-adicionar {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.btn-adicionar:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+/* ====== TABELA ====== */
+.estoque-tabela {
+  min-width: 1450px;
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.estoque-tabela th,
+.estoque-tabela td {
+  padding: 12px;
+  text-align: center;
+  color: #fff;
+}
+
+.estoque-tabela th {
+  background: rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.estoque-tabela tr:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ====== CAMPO DE BUSCA ====== */
+.estoque-controles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.input-busca {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 15px;
+  width: 220px;
+  outline: none;
+  backdrop-filter: blur(5px);
+  transition: 0.3s ease;
+}
+
+.input-busca::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.input-busca:focus {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ====== BOTÕES DE AÇÃO ====== */
+.acoes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-editar,
+.btn-excluir {
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.btn-editar {
+  background: rgba(0, 200, 83, 0.8);
+  color: white;
+}
+
+.btn-editar:hover {
+  background: rgba(0, 230, 118, 0.9);
+}
+
+.btn-excluir {
+  background: rgba(229, 57, 53, 0.8);
+  color: white;
+}
+
+.btn-excluir:hover {
+  background: rgba(239, 83, 80, 0.9);
+}
+
+/* ====== FILTRO AO CLICAR NA COLUNA ====== */
+.coluna-clickavel {
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.coluna-clickavel:hover {
+  color: #c77dff;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 9999;
+}
+
+.modal {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 30px;
+  width: 400px;
+  max-width: 400px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  animation: fadeIn 0.25s ease;
+  z-index: 99999;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: none;
+
+  margin-top: -150px;
+  margin-left: -150px;
+}
+
+
+
+/* fade sem mexer no translate */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.modal h3 {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.modal input {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  color: white;
+  outline: none;
+}
+
+.modal input:focus {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-acoes {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.btn-salvar,
+.btn-cancelar {
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-salvar {
+  background: #00c853;
+  color: white;
+}
+
+.btn-cancelar {
+  background: #e53935;
+  color: white;
+}
+
+.btn-salvar:hover {
+  background: #00e676;
+}
+
+.btn-cancelar:hover {
+  background: #ef5350;
+}
+
+/* ====== BOTÕES DE EXPORTAÇÃO ====== */
+.btn-exportar {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.btn-exportar:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.btn-exportar.pdf {
+  backdrop-filter: blur(8px);
+}
+
+.btn-exportar.pdf:hover {
+  backdrop-filter: blur(8px);
+}
+
+.btn-exportar.excel {
+  backdrop-filter: blur(8px);
+}
+
+.btn-exportar.excel:hover {
+  backdrop-filter: blur(8px);
+}
+
+/* ====== WRAPPER DA TABELA (CONTER O TAMANHO) ====== */
+.estoque-tabela-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto; /* só aparece scroll se for necessário */
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+/* ====== TABELA CORRIGIDA ====== */
+.estoque-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* TRAVA o tamanho máximo e evita quebrar o container */
+}
+
+/* ====== COLUNAS AJUSTADAS ====== */
+
+/* Descrição */
+.estoque-tabela th:nth-child(1),
+.estoque-tabela td:nth-child(1) {
+  width: 220px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fornecedor */
+.estoque-tabela th:nth-child(2),
+.estoque-tabela td:nth-child(2) {
+  width: 150px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nota Fiscal */
+.estoque-tabela th:nth-child(3),
+.estoque-tabela td:nth-child(3) {
+  width: 110px;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Entrada (Data) */
+.estoque-tabela th:nth-child(4),
+.estoque-tabela td:nth-child(4) {
+  width: 95px;
+  max-width: 95px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quantidade Entrada */
+.estoque-tabela th:nth-child(5),
+.estoque-tabela td:nth-child(5) {
+  width: 85px;
+  max-width: 85px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Estoque Total */
+.estoque-tabela th:nth-child(6),
+.estoque-tabela td:nth-child(6) {
+  width: 85px;
+  max-width: 85px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Valor Unitário (pequeno) */
+.estoque-tabela th:nth-child(7),
+.estoque-tabela td:nth-child(7) {
+  width: 90px;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Valor Total (você pediu: 150–160px) */
+.estoque-tabela th:nth-child(8),
+.estoque-tabela td:nth-child(8) {
+  width: 150px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ====== COLUNA DE AÇÕES (AJUSTE FINAL E DEFINITIVO) ====== */
+
+/* Garante que a largura da coluna seja fixa e centralizada */
+.estoque-tabela th:nth-child(9),
+.estoque-tabela td:nth-child(9) {
+  width: 160px !important;     /* espaço ideal p/ 2 botões */
+  max-width: 160px !important;
+  text-align: center !important;
+  padding: 0 !important;
+}
+
+/* Wrapper dos botões */
+.acoes {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;       /* ocupa toda a coluna, sem puxar lado nenhum */
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Botões dentro da coluna */
+.acoes button {
+  flex: 1;                      /* distribui espaço igual */
+  min-width: 70px;
+  max-width: 80px;
+  text-align: center;
+    margin-top: 6px !important;
+}
+
+
