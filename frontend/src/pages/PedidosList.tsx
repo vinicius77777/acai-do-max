@@ -133,6 +133,10 @@ export default function PedidosList() {
 
 
 
+
+
+
+
   async function editarPedido() {
     try {
       const payload = {
@@ -305,6 +309,10 @@ export default function PedidosList() {
     (formData.quant_saida || 0) *
     (formData.valor_unitario_venda || 0);
 
+  const totalPedidos = pedidosFiltrados.reduce((acc, p) => {
+    return acc + (Number(p.valor_total_saida) || 0);
+  }, 0);
+
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -382,7 +390,10 @@ export default function PedidosList() {
       const valor = Number(p.valor_total_saida) || 0;
       return acc + valor;
     }, 0);
-
+    
+      const totalPedidos = pedidosFiltrados.reduce((acc, p) => {
+  return acc + (Number(p.valor_total_saida) || 0);
+}, 0);
     const totalGeralFormatado = totalGeral.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -591,6 +602,10 @@ export default function PedidosList() {
           ))}
         </tbody>
       </table>
+
+  <div className="total-geral-pedidos">
+    <strong>Total dos pedidos:</strong> {formatarValor(totalPedidos)}
+  </div>
 
       {showModal && (
         <div className="modal-overlay">

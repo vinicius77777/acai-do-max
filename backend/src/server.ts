@@ -202,9 +202,9 @@ app.post("/pedidos/prever", async (req: Request, res: Response) => {
 
     let valorUnitarioVenda = item ? Number(item.valor_venda || 0) : 0;
     let valorUnitarioCusto = item ? Number(item.estoque_valor_unitario || 0) : 0;
+    
 
     // cálculo inicial
-    let lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
 
    // identificar se precisa aplicar desconto especial
 const isDescontoCliente =
@@ -232,6 +232,7 @@ if (
 
 } else if (item && isDescontoCliente && !isSemDesconto) {
   // ⭐ regra normal de desconto (50% do lucro)
+  const lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
   const metadeLucro = lucroUnitario * 0.5;
   valorUnitarioVenda = valorUnitarioCusto + metadeLucro;
   descontoAplicado = true;
@@ -264,7 +265,8 @@ app.post("/pedidos", async (req: Request, res: Response) => {
       quant_saida,
       responsavel,
       saida_loja,
-      localidade
+      localidade,
+      valor_unitario_venda, // pode vir do /prever
     } = req.body;
 
     const agora = new Date();
@@ -274,119 +276,113 @@ app.post("/pedidos", async (req: Request, res: Response) => {
     const descricaoTrim = String(descricao || "").trim();
     const quantidadeSaida = Number(quant_saida);
 
-    // Produto existe no estoque (opcional agora)
+    // Produto existe no estoque (opcional)
     const item = await prisma.estoque_registro.findFirst({
       where: { descricao: descricaoTrim },
     });
 
     let valorUnitarioVenda = item ? Number(item.valor_venda || 0) : 0;
-    let valorUnitarioCusto = item ? Number(item.estoque_valor_unitario || 0) : 0;
-    let estoqueId: number | null = item ? item.codigoItem : null;
+    const valorUnitarioCusto = item
+      ? Number(item.estoque_valor_unitario || 0)
+      : 0;
 
-    // ===== CÁLCULOS INICIAIS =====
-    let lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
-    let lucroTotal = lucroUnitario * quantidadeSaida;
-    let margem =
+    const estoqueId: number | null = item ? item.codigoItem : null;
+
+    let lucroUnitario = 0;
+    let lucroTotal = 0;
+    let margem = "0%";
+
+    const nomeLower = descricaoTrim.toLowerCase();
+
+    const isDescontoCliente =
+      (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
+      (responsavel === "Ericson" && saida_loja === "Estação Açaí");
+
+    // ❗ SOMENTE itens que realmente não recebem desconto
+    const isSemDesconto =
+      nomeLower.includes("caixa de papelão") ||
+      nomeLower.includes("caixa papelão") ||
+      nomeLower.includes("caixa papelon");
+
+    let precoTravado = false;
+
+    // ===============================
+    // DEFINIÇÃO DO PREÇO FINAL
+    // ===============================
+
+    // 🔥 REGRA ESPECIAL (preço fixo)
+    if (
+      responsavel === "Rodrigo" &&
+      saida_loja === "Barra Açaí" &&
+      nomeLower.includes("aça")
+    ) {
+      valorUnitarioVenda = 122.5;
+      precoTravado = true;
+
+    } else if (item && isDescontoCliente && !isSemDesconto) {
+      // ⭐ desconto normal = 50% do lucro
+      const lucroPadrao = valorUnitarioVenda - valorUnitarioCusto;
+      const metadeLucro = lucroPadrao * 0.5;
+      valorUnitarioVenda = valorUnitarioCusto + metadeLucro;
+    }
+
+    // 🔥 Override do front (SÓ se não for preço especial)
+    if (!precoTravado && valor_unitario_venda && valor_unitario_venda > 0) {
+      valorUnitarioVenda = Number(valor_unitario_venda);
+    }
+
+    // ===============================
+    // ✅ CÁLCULO FINAL (ÚNICO)
+    // ===============================
+    lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
+    lucroTotal = lucroUnitario * quantidadeSaida;
+
+    margem =
       valorUnitarioVenda > 0
         ? ((lucroUnitario / valorUnitarioVenda) * 100).toFixed(2) + "%"
         : "0%";
 
-    let valorTotalSaida = valorUnitarioVenda * quantidadeSaida;
+    const valorTotalSaida = valorUnitarioVenda * quantidadeSaida;
 
-    
-    const isDescontoCliente =
-  (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
-  (responsavel === "Ericson" && saida_loja === "Estação Açaí");
+    const novoPedido = await prisma.pedidos_registro.create({
+      data: {
+        descricao: descricaoTrim,
+        quant_saida: quantidadeSaida,
+        responsavel,
+        saida_loja,
+        localidade,
+        mes_saida,
+        dia_saida,
+        valor_unitario_venda: new Prisma.Decimal(valorUnitarioVenda),
+        valor_total_saida: new Prisma.Decimal(valorTotalSaida),
+        lucratividade_unitario: new Prisma.Decimal(lucroUnitario),
+        lucratividade_total: new Prisma.Decimal(lucroTotal),
+        margem_aplicada: margem,
+        estoqueId,
+      },
+    });
 
-const nomeLower = descricaoTrim.toLowerCase();
+    // 🔥 DESCONTAR DO ESTOQUE
+    if (estoqueId && item) {
+      await prisma.estoque_registro.update({
+        where: { codigoItem: estoqueId },
+        data: {
+          estoque_quantidade:
+            Number(item.estoque_quantidade || 0) - quantidadeSaida,
+        },
+      });
+    }
 
-// Produtos SEM desconto
-const isSemDesconto =
-  nomeLower.includes("açai") ||
-  nomeLower.includes("açaí") ||
-  nomeLower.includes("acai") ||
-  nomeLower.includes("caixa de papelão") ||
-  nomeLower.includes("caixa papelão") ||
-  nomeLower.includes("caixa papelon");
-
-// ✅🔥 REGRA ESPECIAL – AÇAÍ DO RODRIGO (Barra Açaí): 122,50 SEMPRE
-if (
-  responsavel === "Rodrigo" &&
-  saida_loja === "Barra Açaí" &&
-  nomeLower.includes("aça")
-) {
-  valorUnitarioVenda = 122.50;
-
-  valorTotalSaida = valorUnitarioVenda * quantidadeSaida;
-  lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
-  lucroTotal = lucroUnitario * quantidadeSaida;
-  margem =
-    valorUnitarioVenda > 0
-      ? ((lucroUnitario / valorUnitarioVenda) * 100).toFixed(2) + "%"
-      : "0%";
-
-} else if (isSemDesconto && item) {
-  // 👇 NÃO APLICA DESCONTO NORMAL (fica preço do banco)
-  valorUnitarioVenda = valorUnitarioVenda;
-
-} else if (isDescontoCliente && !isSemDesconto && item) {
-  // 👇 APLICA DESCONTO NORMAL
-  const metadeLucro = lucroUnitario * 0.5;
-  valorUnitarioVenda = valorUnitarioCusto + metadeLucro;
-
-  lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
-  valorTotalSaida = valorUnitarioVenda * quantidadeSaida;
-  lucroTotal = lucroUnitario * quantidadeSaida;
-  margem =
-    valorUnitarioVenda > 0
-      ? ((lucroUnitario / valorUnitarioVenda) * 100).toFixed(2) + "%"
-      : "0%";
-}
-
-// 🔥 Se o front já calculou desconto (via /prever), usa ele
-if (req.body.valor_unitario_venda && req.body.valor_unitario_venda > 0) {
-  valorUnitarioVenda = Number(req.body.valor_unitario_venda);
-}
-
-// Recalcula total final
-valorTotalSaida = valorUnitarioVenda * quantidadeSaida;
-
-const novoPedido = await prisma.pedidos_registro.create({
-  data: {
-    descricao: descricaoTrim,
-    quant_saida: quantidadeSaida,
-    responsavel,
-    saida_loja,
-    localidade,
-    mes_saida,
-    dia_saida,
-    valor_unitario_venda: new Prisma.Decimal(Number(valorUnitarioVenda)),
-    valor_total_saida: new Prisma.Decimal(Number(valorTotalSaida)),
-    lucratividade_unitario: new Prisma.Decimal(Number(lucroUnitario)),
-    lucratividade_total: new Prisma.Decimal(Number(lucroTotal)),
-    margem_aplicada: margem,
-    estoqueId,
-  },
-});
-
-// 🔥 AGORA SIM: DESCONTAR DO ESTOQUE
-if (estoqueId && item) {
-  await prisma.estoque_registro.update({
-    where: { codigoItem: estoqueId },
-    data: {
-      estoque_quantidade: Number(item.estoque_quantidade || 0) - quantidadeSaida,
-    },
-  });
-}
-return res.status(201).json({
-  message: "Pedido criado com sucesso.",
-  pedido: novoPedido,
-});
+    return res.status(201).json({
+      message: "Pedido criado com sucesso.",
+      pedido: novoPedido,
+    });
   } catch (error) {
     console.error("❌ Erro ao criar pedido:", error);
     return res.status(500).json({ error: "Erro ao criar pedido." });
   }
 });
+
 
 
 

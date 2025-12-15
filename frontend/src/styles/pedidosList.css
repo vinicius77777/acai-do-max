@@ -417,3 +417,26 @@ body {
 .lista-itens-pedido::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
 }
+
+.total-geral-pedidos {
+  margin-top: 14px;
+  padding: 10px 4px;
+  background: transparent;
+  color: #eaeaea;
+
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.total-geral-pedidos strong {
+  margin-right: 8px;
+  font-weight: 600;
+  color: #ffffff;
+}
