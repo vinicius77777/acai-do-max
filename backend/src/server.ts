@@ -38,45 +38,41 @@ app.post("/estoque", async (req: Request, res: Response) => {
       where: { descricao },
     });
 
-    if (itemExistente) {
-      const novaQuantidade = 
-        (itemExistente.estoque_quantidade || 0) + quantidadeEntrada;
+   if (itemExistente) {
+  const novaQuantidadeFisica =
+    (itemExistente.estoque_quantidade || 0) + quantidadeEntrada;
 
-      // soma total + recalcula unitário REAL
-      const novoValorTotal =
-        Number(itemExistente.valor_total_entrada || 0) +
-        valorTotalEntrada;
+  const valorUnitario =
+    quantidadeEntrada > 0 ? valorTotalEntrada / quantidadeEntrada : 0;
 
-      const novoValorUnitario =
-        novaQuantidade > 0 ? novoValorTotal / novaQuantidade : 0;
+  const atualizado = await prisma.estoque_registro.update({
+    where: { codigoItem: itemExistente.codigoItem },
+    data: {
+      // 🔥 quantidade física acumula
+      estoque_quantidade: novaQuantidadeFisica,
 
-      const atualizado = await prisma.estoque_registro.update({
-        where: { codigoItem: itemExistente.codigoItem },
-        data: {
-          quant_entrada:
-            (itemExistente.quant_entrada || 0) + quantidadeEntrada,
-          estoque_quantidade: novaQuantidade,
+      // 🔥 RESET financeiro (última compra manda)
+      quant_entrada: quantidadeEntrada,
+      valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
+      estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
 
-          valor_total_entrada: new Prisma.Decimal(novoValorTotal),
-          estoque_valor_unitario: new Prisma.Decimal(novoValorUnitario),
+      nota_fiscal: data.nota_fiscal || null,
+      fornecedor: data.fornecedor || null,
+      data_vencimento: data.data_vencimento || null,
 
-          // agora atualiza nota/fornecedor sempre
-          nota_fiscal: data.nota_fiscal || itemExistente.nota_fiscal,
-          fornecedor: data.fornecedor || itemExistente.fornecedor,
-          data_vencimento: data.data_vencimento || itemExistente.data_vencimento,
+      // preço de venda só muda se enviar
+      valor_venda: data.valor_venda
+        ? new Prisma.Decimal(Number(data.valor_venda))
+        : itemExistente.valor_venda,
+    },
+  });
 
-          // valor venda mantém antigo se não enviado
-          valor_venda: data.valor_venda
-            ? new Prisma.Decimal(Number(data.valor_venda))
-            : itemExistente.valor_venda,
-        },
-      });
+  return res.json({
+    message: "Estoque atualizado (entrada resetada corretamente).",
+    item: atualizado,
+  });
+}
 
-      return res.json({
-        message: "Item existia — estoque somado corretamente.",
-        item: atualizado,
-      });
-    }
 
     /* ITEM NOVO */
     const novoItem = await prisma.estoque_registro.create({
@@ -138,29 +134,32 @@ app.put("/estoque/:codigoItem", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Item não encontrado." });
     }
 
-    const novaEntrada = Number(data.quant_entrada || itemAtual.quant_entrada);
-    const novaQuantidade =
-      (itemAtual.estoque_quantidade || 0) +
-      (novaEntrada - (itemAtual.quant_entrada || 0));
+    const quantidadeEntrada = Number(
+      data.quant_entrada ?? itemAtual.quant_entrada
+    );
 
-    const novoValorTotal =
-      Number(data.valor_total_entrada || itemAtual.valor_total_entrada);
+    const valorTotalEntrada = Number(
+      data.valor_total_entrada ?? itemAtual.valor_total_entrada
+    );
 
-    const novoValorUnitario =
-      novaQuantidade > 0 ? novoValorTotal / novaQuantidade : 0;
+    const valorUnitario =
+      quantidadeEntrada > 0 ? valorTotalEntrada / quantidadeEntrada : 0;
 
     const atualizado = await prisma.estoque_registro.update({
       where: { codigoItem },
       data: {
-        descricao: data.descricao || itemAtual.descricao,
-        fornecedor: data.fornecedor || itemAtual.fornecedor,
-        nota_fiscal: data.nota_fiscal || itemAtual.nota_fiscal,
+        descricao: data.descricao ?? itemAtual.descricao,
+        fornecedor: data.fornecedor ?? itemAtual.fornecedor,
+        nota_fiscal: data.nota_fiscal ?? itemAtual.nota_fiscal,
+        data_vencimento: data.data_vencimento ?? itemAtual.data_vencimento,
 
-        quant_entrada: novaEntrada,
-        estoque_quantidade: novaQuantidade,
+        // 🔥 NUNCA mexe na quantidade física aqui
+        estoque_quantidade: itemAtual.estoque_quantidade,
 
-        valor_total_entrada: new Prisma.Decimal(novoValorTotal),
-        estoque_valor_unitario: new Prisma.Decimal(novoValorUnitario),
+        // 🔥 RESET financeiro
+        quant_entrada: quantidadeEntrada,
+        valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
+        estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
 
         valor_venda: data.valor_venda
           ? new Prisma.Decimal(Number(data.valor_venda))
@@ -168,8 +167,12 @@ app.put("/estoque/:codigoItem", async (req: Request, res: Response) => {
       },
     });
 
-    return res.json(atualizado);
+    return res.json({
+      message: "Item atualizado (financeiro resetado, estoque preservado).",
+      item: atualizado,
+    });
   } catch (error) {
+    console.error("❌ Erro ao atualizar item:", error);
     return res.status(500).json({ error: "Erro ao atualizar item." });
   }
 });

@@ -326,90 +326,104 @@ export default function PedidosList() {
   }, [formData.descricao, formData.quant_saida, formData.responsavel, formData.localidade]);
 
 
-  const exportarPDF = () => {
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "pt",
-      format: "A4",
-    });
+ const exportarPDF = () => {
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "pt",
+    format: "A4",
+  });
 
-    const titulo = "Pedidos";
+  // 👉 Nome do cliente filtrado (ajusta se o campo for outro)
+  const clienteFiltrado =
+    pedidosFiltrados.length > 0
+      ? pedidosFiltrados[0].responsavel
+      : "";
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.text(titulo, 40, 40);
+  const titulo = clienteFiltrado
+    ? `${clienteFiltrado}`
+    : "Relatório de Pedidos";
 
-    const colunas = [
-      { header: "Descrição", dataKey: "descricao" },
-      { header: "Quantidade", dataKey: "quant_saida" },
-      { header: "Responsável", dataKey: "responsavel" },
-      { header: "Loja", dataKey: "loja" },
-      { header: "Valor Unitário", dataKey: "valor_unitario" },
-      { header: "Valor Total", dataKey: "valor_total" },
-    ];
+  // ===== TÍTULO =====
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.text(titulo, 40, 40);
 
-    const linhas = pedidosFiltrados.map((p) => ({
-      descricao: p.descricao,
-      quant_saida: p.quant_saida || "",
-      responsavel: p.responsavel || "",
-      Loja: p.localidade || "",
-      valor_unitario: formatarValor(p.valor_unitario_venda),
-      valor_total: formatarValor(p.valor_total_saida),
-    }));
+  // Linha abaixo do título (visual profissional)
+  doc.setDrawColor(180);
+  doc.line(40, 48, 800, 48);
 
-    autoTable(doc, {
-      startY: 85,
-      head: [colunas.map((c) => c.header)],
-      body: linhas.map((l) => Object.values(l)),
-      theme: "grid",
-      styles: {
-        font: "helvetica",
-        fontSize: 11,
-        cellPadding: 6,
-        valign: "middle",
-        textColor: "#000",
-        lineColor: "#bfbfbf",
-        lineWidth: 0.5,
-      },
-      headStyles: {
-        fillColor: "#2c2c2c",
-        textColor: "#fff",
-        fontStyle: "bold",
-      },
-      alternateRowStyles: {
-        fillColor: "#f5f5f5",
-      },
-      bodyStyles: {
-        fillColor: "#ffffff",
-      },
-      tableWidth: "auto",
-      margin: { left: 40, right: 40 },
-    });
+  const colunas = [
+    "Descrição",
+    "Quantidade",
+    "Responsável",
+    "Loja",
+    "Valor Unitário",
+    "Valor Total",
+  ];
 
-    const totalGeral = pedidosFiltrados.reduce((acc, p) => {
-      const valor = Number(p.valor_total_saida) || 0;
-      return acc + valor;
-    }, 0);
-    
-      const totalPedidos = pedidosFiltrados.reduce((acc, p) => {
-  return acc + (Number(p.valor_total_saida) || 0);
-}, 0);
-    const totalGeralFormatado = totalGeral.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  const linhas = pedidosFiltrados.map((p) => ({
+    descricao: p.descricao,
+    quant_saida: p.quant_saida || "",
+    responsavel: p.responsavel || "",
+    loja: p.localidade || "",
+    valor_unitario: formatarValor(p.valor_unitario_venda),
+    valor_total: formatarValor(p.valor_total_saida),
+  }));
 
-    // Adiciona o total no PDF logo abaixo da tabela
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(
-      `TOTAL GERAL: R$ ${totalGeralFormatado}`,
-      40,
-      (doc as any).lastAutoTable.finalY + 20
-    );
+  autoTable(doc, {
+    startY: 75,
+    head: [colunas],
+    body: linhas.map((l) => Object.values(l)),
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 11,
+      cellPadding: 6,
+      valign: "middle",
+      textColor: "#000",
+      lineColor: "#cfcfcf",
+      lineWidth: 0.5,
+    },
+    headStyles: {
+      fillColor: "#2c2c2c",
+      textColor: "#ffffff",
+      fontStyle: "bold",
+      halign: "center",
+    },
+    bodyStyles: {
+      fillColor: "#ffffff",
+    },
+    alternateRowStyles: {
+      fillColor: "#f5f5f5",
+    },
+    margin: { left: 40, right: 40 },
+  });
 
-    doc.save("relatorio de pedidos.pdf");
-  };
+  // ===== TOTAL =====
+  const totalGeral = pedidosFiltrados.reduce((acc, p) => {
+    return acc + (Number(p.valor_total_saida) || 0);
+  }, 0);
+
+  const totalFormatado = totalGeral.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const posY = (doc as any).lastAutoTable.finalY + 30;
+
+  // Caixa de destaque
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(40, posY - 20, 350, 40, 6, 6, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(`TOTAL DO PEDIDO`, 55, posY);
+
+  doc.setFontSize(16);
+  doc.text(`R$ ${totalFormatado}`, 220, posY);
+
+  doc.save("relatorio-pedidos.pdf");
+};  
   const exportarXLSX = () => {
     const dados = pedidosFiltrados.map((p) => ({
       Descrição: p.descricao || "",
