@@ -333,25 +333,34 @@ export default function PedidosList() {
     format: "A4",
   });
 
-  // 👉 Nome do cliente filtrado (ajusta se o campo for outro)
-  const clienteFiltrado =
+  // ======================
+  // DATA ATUAL (SEM HORA)
+  // ======================
+  const hoje = new Date();
+
+  const dataPDF = hoje.toLocaleDateString("pt-BR"); // 12/03/2025
+  const dataArquivo = dataPDF.replaceAll("/", "-"); // 12-03-2025
+
+  // ======================
+  // TÍTULO (CLIENTE)
+  // ======================
+  const nomeCliente =
     pedidosFiltrados.length > 0
-      ? pedidosFiltrados[0].responsavel
-      : "";
+      ? pedidosFiltrados[0].responsavel || "Cliente"
+      : "Cliente";
 
-  const titulo = clienteFiltrado
-    ? `${clienteFiltrado}`
-    : "Relatório de Pedidos";
-
-  // ===== TÍTULO =====
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text(titulo, 40, 40);
+  doc.setFontSize(20);
+  doc.text(`Pedido - ${nomeCliente}`, 40, 40);
 
-  // Linha abaixo do título (visual profissional)
-  doc.setDrawColor(180);
-  doc.line(40, 48, 800, 48);
+  // DATA ABAIXO DO TÍTULO
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`Data: ${dataPDF}`, 40, 60);
 
+  // ======================
+  // TABELA
+  // ======================
   const colunas = [
     "Descrição",
     "Quantidade",
@@ -361,19 +370,19 @@ export default function PedidosList() {
     "Valor Total",
   ];
 
-  const linhas = pedidosFiltrados.map((p) => ({
-    descricao: p.descricao,
-    quant_saida: p.quant_saida || "",
-    responsavel: p.responsavel || "",
-    loja: p.localidade || "",
-    valor_unitario: formatarValor(p.valor_unitario_venda),
-    valor_total: formatarValor(p.valor_total_saida),
-  }));
+  const linhas = pedidosFiltrados.map((p) => [
+    p.descricao,
+    p.quant_saida || "",
+    p.responsavel || "",
+    p.localidade || "",
+    formatarValor(p.valor_unitario_venda),
+    formatarValor(p.valor_total_saida),
+  ]);
 
   autoTable(doc, {
-    startY: 75,
+    startY: 90,
     head: [colunas],
-    body: linhas.map((l) => Object.values(l)),
+    body: linhas,
     theme: "grid",
     styles: {
       font: "helvetica",
@@ -381,17 +390,13 @@ export default function PedidosList() {
       cellPadding: 6,
       valign: "middle",
       textColor: "#000",
-      lineColor: "#cfcfcf",
+      lineColor: "#bfbfbf",
       lineWidth: 0.5,
     },
     headStyles: {
       fillColor: "#2c2c2c",
-      textColor: "#ffffff",
+      textColor: "#fff",
       fontStyle: "bold",
-      halign: "center",
-    },
-    bodyStyles: {
-      fillColor: "#ffffff",
     },
     alternateRowStyles: {
       fillColor: "#f5f5f5",
@@ -399,31 +404,31 @@ export default function PedidosList() {
     margin: { left: 40, right: 40 },
   });
 
-  // ===== TOTAL =====
-  const totalGeral = pedidosFiltrados.reduce((acc, p) => {
-    return acc + (Number(p.valor_total_saida) || 0);
-  }, 0);
+  // ======================
+  // TOTAL GERAL (DESTACADO)
+  // ======================
+  const totalGeral = pedidosFiltrados.reduce(
+    (acc, p) => acc + (Number(p.valor_total_saida) || 0),
+    0
+  );
 
   const totalFormatado = totalGeral.toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const posY = (doc as any).lastAutoTable.finalY + 30;
-
-  // Caixa de destaque
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(40, posY - 20, 350, 40, 6, 6, "F");
+  const yFinal = (doc as any).lastAutoTable.finalY + 30;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(`TOTAL DO PEDIDO`, 55, posY);
+  doc.text(`TOTAL GERAL: R$ ${totalFormatado}`, 40, yFinal);
 
-  doc.setFontSize(16);
-  doc.text(`R$ ${totalFormatado}`, 220, posY);
+  // ======================
+  // SALVAR PDF (COM DATA)
+  // ======================
+  doc.save(`pedido ${nomeCliente} ${dataArquivo}.pdf`);
+};
 
-  doc.save("relatorio-pedidos.pdf");
-};  
   const exportarXLSX = () => {
     const dados = pedidosFiltrados.map((p) => ({
       Descrição: p.descricao || "",
