@@ -269,12 +269,23 @@ app.post("/pedidos", async (req: Request, res: Response) => {
       responsavel,
       saida_loja,
       localidade,
-      valor_unitario_venda, // pode vir do /prever
+      valor_unitario_venda, 
+      dia_saida,   // 👈 novo
+      mes_saida,
     } = req.body;
 
     const agora = new Date();
-    const dia_saida = agora.getDate();
-    const mes_saida = String(agora.getMonth() + 1).padStart(2, "0");
+
+  const diaFinal =
+    dia_saida && Number(dia_saida) > 0
+      ? Number(dia_saida)
+      : agora.getDate();
+
+  const mesFinal =
+    mes_saida && String(mes_saida).length > 0
+      ? String(mes_saida).padStart(2, "0")
+      : String(agora.getMonth() + 1).padStart(2, "0");
+
 
     const descricaoTrim = String(descricao || "").trim();
     const quantidadeSaida = Number(quant_saida);
@@ -301,7 +312,6 @@ app.post("/pedidos", async (req: Request, res: Response) => {
       (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
       (responsavel === "Ericson" && saida_loja === "Estação Açaí");
 
-    // ❗ SOMENTE itens que realmente não recebem desconto
     const isSemDesconto =
       nomeLower.includes("caixa de papelão") ||
       nomeLower.includes("caixa papelão") ||
@@ -354,8 +364,8 @@ app.post("/pedidos", async (req: Request, res: Response) => {
         responsavel,
         saida_loja,
         localidade,
-        mes_saida,
-        dia_saida,
+        mes_saida: mesFinal,
+        dia_saida: diaFinal,
         valor_unitario_venda: new Prisma.Decimal(valorUnitarioVenda),
         valor_total_saida: new Prisma.Decimal(valorTotalSaida),
         lucratividade_unitario: new Prisma.Decimal(lucroUnitario),
@@ -381,9 +391,12 @@ app.post("/pedidos", async (req: Request, res: Response) => {
       pedido: novoPedido,
     });
   } catch (error) {
-    console.error("❌ Erro ao criar pedido:", error);
-    return res.status(500).json({ error: "Erro ao criar pedido." });
-  }
+  console.error("ERRO AO CRIAR PEDIDO:", error);
+  return res.status(500).json({
+    error: "Erro ao criar pedido.",
+    detalhes: error,
+  });
+}
 });
 
 

@@ -55,6 +55,7 @@ export default function LucroList() {
   const [dataInicio, setDataInicio] = useState("");
   const [quinzena, setQuinzena] = useState("");
   const [filtroData, setFiltroData] = useState("");
+  const [mostrarLucro, setMostrarLucro] = useState(true);
 
 
 
@@ -84,6 +85,12 @@ export default function LucroList() {
       console.error("Erro ao buscar pedidos:", error);
     }
   };
+
+  const formatarValorSeguro = (valor?: number | string | null) => {
+  if (!mostrarLucro) return "R$ •••••";
+  return formatarValor(valor);
+};
+
 
   const formatarValor = (valor?: number | string | null) => {
     const numero = parseFloat(String(valor || "0"));
@@ -165,6 +172,42 @@ const pedidosFiltrados = pedidos.filter((p) => {
   return textoOk && mesOk && dataInicioOk && quinzenaOk;
 });
 
+const EyeOpen = ({ size = 22 }: { size?: number }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+
+const EyeClosed = ({ size = 22 }: { size?: number }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94" />
+    <path d="M1 1l22 22" />
+    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+    <path d="M12 4c7 0 11 8 11 8a21.77 21.77 0 0 1-3.17 4.35" />
+  </svg>
+);
 
 
   const lucroTotalMes = pedidosFiltrados.reduce(
@@ -530,12 +573,22 @@ saveAs(blob, "relatorio_lucro.xlsx");
           📊 Excel
         </button>
       </div>
-
       <div className="valor-total-mes">
-        <strong>
-          Lucro total: {formatarValor(lucroTotalMes)}
-        </strong>
-      </div>
+  <strong>
+    Lucro total: {formatarValorSeguro(lucroTotalMes)}
+  </strong>
+
+  <button
+  className="btn-olho"
+  onClick={() => setMostrarLucro((prev) => !prev)}
+  title={mostrarLucro ? "Ocultar valores" : "Mostrar valores"}
+>
+  {mostrarLucro ? <EyeOpen size={18} /> : <EyeClosed size={18} />}
+</button>
+
+</div>
+
+
 
       <div
         className="chart-container"
@@ -580,7 +633,7 @@ saveAs(blob, "relatorio_lucro.xlsx");
               </td>
 
               <td className={(p.lucratividade_total || 0) < 0 ? "negativo" : "positivo"}>
-                {formatarValor(p.lucratividade_total)}
+                {formatarValorSeguro(p.lucratividade_total)}
               </td>
 
               <td>{p.margem_aplicada}</td>

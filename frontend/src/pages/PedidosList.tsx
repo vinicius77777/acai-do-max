@@ -17,6 +17,7 @@ interface Pedido {
   mes_saida?: string;
   dia_saida?: number;
   ano_saida?: number;
+  data_saida?: string;
 }
 
 interface EstoqueItem {
@@ -91,28 +92,54 @@ export default function PedidosList() {
 
   async function criarPedido() {
     try {
-      // Se adicionou vários itens → enviar um por vez
+      // ----------------------------
+      // Função auxiliar pra extrair data
+      // ----------------------------
+      const extrairData = (origem: any) => {
+        if (!origem?.data_saida) return {};
+
+        const [ano, mes, dia] = origem.data_saida.split("-");
+
+        return {
+          dia_saida: Number(dia),
+          mes_saida: mes,
+        };
+      };
+
+      // ----------------------------
+      // VÁRIOS ITENS
+      // ----------------------------
       if (itensPedido.length > 0) {
         for (const item of itensPedido) {
+          const dataExtraida = extrairData(item);
+
           const payload = {
             ...item,
             quant_saida: Number(item.quant_saida) || 0,
+            ...dataExtraida,
           };
+
           await api.post("/pedidos", payload);
         }
-      } else {
-        // Caso seja só um item normal
+      }
+      // ----------------------------
+      // ITEM ÚNICO
+      // ----------------------------
+      else {
+        const dataExtraida = extrairData(formData);
+
         const payload = {
           ...formData,
           quant_saida: Number(formData.quant_saida) || 0,
+          ...dataExtraida,
         };
+
         await api.post("/pedidos", payload);
       }
 
       await carregarPedidos();
       await carregarEstoque();
 
-      // limpar
       setItensPedido([]);
       setFormData({});
       setShowModal(false);
@@ -120,6 +147,7 @@ export default function PedidosList() {
       alert(err.response?.data?.error || "Erro ao criar pedido.");
     }
   }
+
 
 
   const pedidosFiltradosPorData = pedidos.filter((p) => {
@@ -540,14 +568,23 @@ export default function PedidosList() {
             className="input-data"
           />
 
-          <button
-            className="btn-novo"
-            onClick={() => {
-              setShowModal(true);
-              setEditando(false);
-              setFormData({});
-            }}
-          >
+         <button
+          className="btn-novo"
+          onClick={() => {
+            const hoje = new Date();
+            const yyyy = hoje.getFullYear();
+            const mm = String(hoje.getMonth() + 1).padStart(2, "0");
+            const dd = String(hoje.getDate()).padStart(2, "0");
+
+            setFormData({
+              data_saida: `${yyyy}-${mm}-${dd}`, // 👈 nova info só no front
+            });
+
+            setShowModal(true);
+            setEditando(false);
+          }}
+        >
+
             + Adicionar Pedido
           </button>
 
@@ -680,6 +717,18 @@ export default function PedidosList() {
                 })
               }
             />
+
+              <input
+                type="date"
+                value={(formData as any).data_saida || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    data_saida: e.target.value,
+                  })
+                }
+              />
+
 
             <input
               placeholder="Responsável"
