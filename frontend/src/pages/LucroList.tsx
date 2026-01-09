@@ -32,6 +32,7 @@ interface Pedido {
   descricao: string;
   responsavel?: string;
   localidade?: string;
+  ano_saida?: number | null;
   mes_saida?: string | null;
   dia_saida?: number | null;
   quant_saida?: number | null;
@@ -71,6 +72,7 @@ export default function LucroList() {
         descricao: p.descricao,
         responsavel: p.responsavel ?? null,
         localidade: p.localidade ?? null,
+        ano_saida: p.ano_saida ?? null,
         mes_saida: p.mes_saida ?? null,
         dia_saida: p.dia_saida ?? null,
         quant_saida: Number(p.quant_saida || 0),
@@ -99,10 +101,10 @@ export default function LucroList() {
   };
 
   const formatarDataSaida = (p: Pedido) => {
-    if (!p.dia_saida || !p.mes_saida) return "";
-    const anoAtual = new Date().getFullYear();
-    return `${String(p.dia_saida).padStart(2, "0")}/${p.mes_saida}/${anoAtual}`;
-  };
+  if (!p.dia_saida || !p.mes_saida || !p.ano_saida) return "";
+  return `${String(p.dia_saida).padStart(2, "0")}/${p.mes_saida}/${p.ano_saida}`;
+};
+
 
 const pedidosFiltrados = pedidos.filter((p) => {
   // 🔎 FILTRO DE TEXTO
@@ -116,10 +118,10 @@ const pedidosFiltrados = pedidos.filter((p) => {
 
   // 🔹 Monta a data real do pedido
   let dataPedido: Date | null = null;
-  if (p.dia_saida && p.mes_saida) {
-    const anoAtual = new Date().getFullYear();
-    dataPedido = new Date(anoAtual, Number(p.mes_saida) - 1, p.dia_saida);
-  }
+if (p.dia_saida && p.mes_saida && p.ano_saida) {
+  dataPedido = new Date(p.ano_saida, Number(p.mes_saida) - 1, p.dia_saida);
+}
+
 
   // 🔹 FILTRO POR DATA INICIAL
   const dataInicioOk =
@@ -154,19 +156,20 @@ const pedidosFiltrados = pedidos.filter((p) => {
         return false;
     }
 
-    if (limpa.length === 8) {
-      const diaFiltro = Number(limpa.slice(0, 2));
-      const mesFiltro = Number(limpa.slice(2, 4));
-      const anoFiltro = Number(limpa.slice(4, 8));
+      if (limpa.length === 8) {
+  const diaFiltro = Number(limpa.slice(0, 2));
+  const mesFiltro = Number(limpa.slice(2, 4));
+  const anoFiltro = Number(limpa.slice(4, 8));
 
-      const anoAtual = new Date().getFullYear();
-      if (
-        p.dia_saida !== diaFiltro ||
-        Number(p.mes_saida) !== mesFiltro ||
-        anoAtual !== anoFiltro // você não tem ano no banco
-      )
-        return false;
-    }
+  if (
+    p.dia_saida !== diaFiltro ||
+    Number(p.mes_saida) !== mesFiltro ||
+    p.ano_saida !== anoFiltro
+  )
+    return false;
+}
+
+
   }
 
   return textoOk && mesOk && dataInicioOk && quinzenaOk;
@@ -232,88 +235,89 @@ const EyeClosed = ({ size = 22 }: { size?: number }) => (
   };
 
   // --------------------------
-  // GERAÇÃO DOS DADOS DO GRÁFICO
-  // --------------------------
-  let labels: string[] = [];
+// GERAÇÃO DOS DADOS DO GRÁFICO
+// --------------------------
+let labels: string[] = [];
 let valores: number[] = [];
 
 if (modoGrafico === "mes") {
-  // 🔵 LUCRO POR MÊS
-  labels = Array.from(
-    new Set(
-      pedidosFiltrados
-        .map((p) => p.mes_saida)
-        .filter((m): m is string => !!m)
-    )
-  ).sort();
+  // 🔵 LUCRO POR MÊS + ANO (SEM CONFUSÃO DE ORDEM)
 
-  valores = labels.map((mes) =>
-    pedidosFiltrados
-      .filter((p) => p.mes_saida === mes)
-      .reduce((acc, p) => acc + (p.lucratividade_total || 0), 0)
-  );
+  const mapa = new Map<string, number>();
 
-} else if (modoGrafico === "dia") {
-  // 🟢 LUCRO POR DIA
-  // Labels ordenados do mais antigo para o mais recente
-labels = Array.from(
-  new Set(
-    pedidosFiltrados
-      .filter((p) => p.dia_saida && p.mes_saida)
-      .map(
-        (p) =>
-          `${String(p.dia_saida).padStart(2, "0")}/${String(
-            p.mes_saida
-          ).padStart(2, "0")}`
-      )
-  )
-)
-  .sort((a, b) => {
-    const [diaA, mesA] = a.split("/").map(Number);
-    const [diaB, mesB] = b.split("/").map(Number);
+  pedidosFiltrados.forEach((p) => {
+    if (!p.mes_saida || !p.ano_saida) return;
 
-    // Cria datas fictícias para comparar
-    const dataA = new Date(2025, mesA - 1, diaA);
-    const dataB = new Date(2025, mesB - 1, diaB);
+    const chave = `${String(p.mes_saida).padStart(2, "0")}/${p.ano_saida}`;
 
-    return dataA.getTime() - dataB.getTime(); // ORDEM CRESCENTE → mais antigo primeiro
+    mapa.set(
+      chave,
+      (mapa.get(chave) || 0) + (p.lucratividade_total || 0)
+    );
   });
 
-// Somatório dos valores por label
-valores = labels.map((label) => {
-  const [dia, mes] = label.split("/");
+  // Ordena corretamente por data real
+  labels = Array.from(mapa.keys()).sort((a, b) => {
+    const [mesA, anoA] = a.split("/").map(Number);
+    const [mesB, anoB] = b.split("/").map(Number);
 
-  return pedidosFiltrados
-    .filter(
-      (p) =>
-        String(p.dia_saida).padStart(2, "0") === dia &&
-        String(p.mes_saida).padStart(2, "0") === mes
-    )
-    .reduce((acc, p) => acc + (p.lucratividade_total || 0), 0);
-});
+    const dataA = new Date(anoA, mesA - 1, 1);
+    const dataB = new Date(anoB, mesB - 1, 1);
 
+    return dataA.getTime() - dataB.getTime();
+  });
+
+  valores = labels.map((label) => mapa.get(label) || 0);
+
+} else if (modoGrafico === "dia") {
+  // 🟢 LUCRO POR DIA (ORDENADO CORRETAMENTE)
+
+  const mapa = new Map<string, number>();
+
+  pedidosFiltrados.forEach((p) => {
+    if (!p.dia_saida || !p.mes_saida || !p.ano_saida) return;
+
+    const chave = `${String(p.dia_saida).padStart(2, "0")}/${String(
+  p.mes_saida
+).padStart(2, "0")}/${String(p.ano_saida).slice(-2)}`;
+
+
+    mapa.set(
+      chave,
+      (mapa.get(chave) || 0) + (p.lucratividade_total || 0)
+    );
+  });
+
+  labels = Array.from(mapa.keys()).sort((a, b) => {
+    const [diaA, mesA, anoA] = a.split("/").map(Number);
+    const [diaB, mesB, anoB] = b.split("/").map(Number);
+
+    const dataA = new Date(anoA, mesA - 1, diaA);
+    const dataB = new Date(anoB, mesB - 1, diaB);
+
+    return dataA.getTime() - dataB.getTime();
+  });
+
+  valores = labels.map((label) => mapa.get(label) || 0);
 
 } else if (modoGrafico === "ano") {
   // 🟡 LUCRO POR ANO
-  const anos = pedidosFiltrados
-    .map((p) => {
-      const d = formatarDataSaida(p);
-      if (!d) return null;
-      return d.split("/")[2]; // ano
-    })
-    .filter((a): a is string => a !== null);
 
-  labels = Array.from(new Set(anos)).sort();
+  const mapa = new Map<string, number>();
 
-  valores = labels.map((ano) =>
-    pedidosFiltrados
-      .filter((p) => {
-        const d = formatarDataSaida(p);
-        if (!d) return false;
-        return d.endsWith(ano);
-      })
-      .reduce((acc, p) => acc + (p.lucratividade_total || 0), 0)
-  );
+  pedidosFiltrados.forEach((p) => {
+    if (!p.ano_saida) return;
+
+    const ano = String(p.ano_saida);
+
+    mapa.set(
+      ano,
+      (mapa.get(ano) || 0) + (p.lucratividade_total || 0)
+    );
+  });
+
+  labels = Array.from(mapa.keys()).sort();
+  valores = labels.map((ano) => mapa.get(ano) || 0);
 }
 
   const dataGrafico = {

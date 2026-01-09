@@ -14,11 +14,12 @@ interface Pedido {
   localidade?: string;
   valor_unitario_venda?: number;
   valor_total_saida?: number;
-  mes_saida?: string;
   dia_saida?: number;
+  mes_saida?: number;   
   ano_saida?: number;
   data_saida?: string;
 }
+
 
 interface EstoqueItem {
   codigoItem: number;
@@ -68,6 +69,12 @@ export default function PedidosList() {
     });
   };
 
+  const formatarDataPedido = (p: Pedido) => {
+  if (!p.dia_saida || !p.mes_saida || !p.ano_saida) return "";
+  return `${String(p.dia_saida).padStart(2, "0")}/${String(p.mes_saida).padStart(2, "0")}/${p.ano_saida}`;
+};
+
+
   /** 🔥 PREVER PREÇO (para aplicar desconto automático) */
   async function preverPreco() {
     if (!formData.descricao || !formData.quant_saida) return;
@@ -99,28 +106,27 @@ export default function PedidosList() {
         if (!origem?.data_saida) return {};
 
         const [ano, mes, dia] = origem.data_saida.split("-");
-
-        return {
-          dia_saida: Number(dia),
-          mes_saida: mes,
-        };
+          return {
+            dia_saida: Number(dia),
+            mes_saida: Number(mes),      // ✅ number
+            ano_saida: Number(ano),
+          };
       };
 
-      // ----------------------------
-      // VÁRIOS ITENS
-      // ----------------------------
+      const dataBase = itensPedido[0]?.data_saida || formData.data_saida;
+
       if (itensPedido.length > 0) {
         for (const item of itensPedido) {
-          const dataExtraida = extrairData(item);
+        const dataExtraida = extrairData({ data_saida: dataBase });
 
-          const payload = {
-            ...item,
-            quant_saida: Number(item.quant_saida) || 0,
-            ...dataExtraida,
-          };
+        const payload = {
+          ...item,
+          quant_saida: Number(item.quant_saida) || 0,
+          ...dataExtraida,
+        };
 
-          await api.post("/pedidos", payload);
-        }
+        await api.post("/pedidos", payload);
+      }
       }
       // ----------------------------
       // ITEM ÚNICO
@@ -354,108 +360,192 @@ export default function PedidosList() {
   }, [formData.descricao, formData.quant_saida, formData.responsavel, formData.localidade]);
 
 
- const exportarPDF = () => {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "pt",
-    format: "A4",
-  });
+ 
+const exportarPDF = () => {
+  try {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "pt",
+      format: "A4",
+    });
 
-  // ======================
-  // DATA ATUAL (SEM HORA)
-  // ======================
-  const hoje = new Date();
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-  const dataPDF = hoje.toLocaleDateString("pt-BR"); // 12/03/2025
-  const dataArquivo = dataPDF.replaceAll("/", "-"); // 12-03-2025
+    // ======================
+    // DATA DO PEDIDO
+    // ======================
+    const dataPedido =
+      pedidosFiltrados.length > 0 &&
+      pedidosFiltrados[0].dia_saida &&
+      pedidosFiltrados[0].mes_saida &&
+      pedidosFiltrados[0].ano_saida
+        ? `${String(pedidosFiltrados[0].dia_saida).padStart(2, "0")}/${String(
+            pedidosFiltrados[0].mes_saida
+          ).padStart(2, "0")}/${pedidosFiltrados[0].ano_saida}`
+        : new Date().toLocaleDateString("pt-BR");
 
-  // ======================
-  // TÍTULO (CLIENTE)
-  // ======================
-  const nomeCliente =
-    pedidosFiltrados.length > 0
-      ? pedidosFiltrados[0].responsavel || "Cliente"
-      : "Cliente";
+    // ======================
+    // CABEÇALHO (CAIXA)
+    // ======================
+    const headerX = 40;
+    const headerY = 30;
+    const headerWidth = pageWidth - 80;
+    const headerHeight = 40;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text(`Pedido - ${nomeCliente}`, 40, 40);
+    doc.setDrawColor(0);
+    doc.setLineWidth(1);
+    doc.rect(headerX, headerY, headerWidth, headerHeight);
 
-  // DATA ABAIXO DO TÍTULO
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text(`Data: ${dataPDF}`, 40, 60);
+    // ======================
+    // LOGO
+    // ======================
+    const logo = new Image();
+    logo.src = "/images/image.png"; // frontend/public/images/image.png
 
-  // ======================
-  // TABELA
-  // ======================
-  const colunas = [
-    "Descrição",
-    "Quantidade",
-    "Responsável",
-    "Loja",
-    "Valor Unitário",
-    "Valor Total",
-  ];
+    logo.onload = () => {
+      const logoWidth = 80;
+      const logoHeight = 40 ;
+      const logoX = headerX + 0;
+      const logoY = headerY + (headerHeight - logoHeight) / 2;
 
-  const linhas = pedidosFiltrados.map((p) => [
-    p.descricao,
-    p.quant_saida || "",
-    p.responsavel || "",
-    p.localidade || "",
-    formatarValor(p.valor_unitario_venda),
-    formatarValor(p.valor_total_saida),
-  ]);
+      doc.addImage(
+        logo,
+        "PNG",
+        logoX,
+        logoY,
+        logoWidth,
+        logoHeight
+      );
 
-  autoTable(doc, {
-    startY: 90,
-    head: [colunas],
-    body: linhas,
-    theme: "grid",
-    styles: {
-      font: "helvetica",
-      fontSize: 11,
-      cellPadding: 6,
-      valign: "middle",
-      textColor: "#000",
-      lineColor: "#bfbfbf",
-      lineWidth: 0.5,
-    },
-    headStyles: {
-      fillColor: "#2c2c2c",
-      textColor: "#fff",
-      fontStyle: "bold",
-    },
-    alternateRowStyles: {
-      fillColor: "#f5f5f5",
-    },
-    margin: { left: 40, right: 40 },
-  });
+      // ======================
+      // TEXTO DO CABEÇALHO
+      // ======================
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      doc.text(
+        "SAÍDA DE MERCADORIAS",
+        headerX + headerWidth / 2 + 20, // compensação visual do logo
+        headerY + headerHeight / 2 + 5,
+        { align: "center" }
+      );
 
-  // ======================
-  // TOTAL GERAL (DESTACADO)
-  // ======================
-  const totalGeral = pedidosFiltrados.reduce(
-    (acc, p) => acc + (Number(p.valor_total_saida) || 0),
-    0
-  );
+      // ======================
+      // TABELA PRINCIPAL
+      // ======================
+      const colunas = ["DESCRIÇÃO", "QTD", "UN", "UNIT.", "TOTAL"];
 
-  const totalFormatado = totalGeral.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+      const linhas = pedidosFiltrados.map((p) => [
+        p.descricao,
+        p.quant_saida ?? "",
+        "Pct",
+        formatarValor(p.valor_unitario_venda),
+        formatarValor(p.valor_total_saida),
+      ]);
 
-  const yFinal = (doc as any).lastAutoTable.finalY + 30;
+      const estilosTabela = {
+        fontSize: 9.5,
+        cellPadding: 6,
+        fontStyle: "bold",
+        textColor: "#000",
+        lineColor: "#000",
+        lineWidth: 1,
+        valign: "middle",
+      };
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(`TOTAL GERAL: R$ ${totalFormatado}`, 40, yFinal);
+      const estilosHeader = {
+        fillColor: "#fff",
+        textColor: "#000",
+        fontStyle: "bold",
+        lineColor: "#000",
+        lineWidth: 1,
+        halign: "center",
+      };
 
-  // ======================
-  // SALVAR PDF (COM DATA)
-  // ======================
-  doc.save(`pedido ${nomeCliente} ${dataArquivo}.pdf`);
+      const columnStyles = {
+        0: { cellWidth: 255, halign: "left" }, // DESCRIÇÃO
+        1: { cellWidth: 45 }, // QTD
+        2: { cellWidth: 45 }, // UN
+        3: { cellWidth: 70 }, // UNIT.
+        4: { cellWidth: 75 }, // TOTAL
+      };
+
+      autoTable(doc, {
+        startY: 90,
+        margin: { left: 55, right: 40 },
+        head: [colunas],
+        body: linhas,
+        theme: "grid",
+        styles: estilosTabela,
+        headStyles: estilosHeader,
+        columnStyles,
+      } as any);
+
+      // ======================
+      // TOTAL GERAL
+      // ======================
+      const totalGeral = pedidosFiltrados.reduce(
+        (acc, p) => acc + Number(p.valor_total_saida || 0),
+        0
+      );
+
+      const yTotal = (doc as any).lastAutoTable.finalY + 10;
+      const larguraTotal = 200;
+      const xTotal = pageWidth - larguraTotal - 40;
+
+      doc.setFontSize(10);
+      doc.rect(xTotal, yTotal, larguraTotal, 22);
+      doc.text(
+        `TOTAL: ${formatarValor(totalGeral)}`,
+        xTotal + larguraTotal / 2,
+        yTotal + 15,
+        { align: "center" }
+      );
+
+      // ======================
+      // RODAPÉ
+      // ======================
+      autoTable(doc, {
+        startY: yTotal + 26,
+        margin: { left: 55, right: 40 },
+        head: [["DATA", "DESTINO", "RECEBIMENTO"]],
+        body: [[
+          dataPedido,
+          pedidosFiltrados[0]?.localidade || "",
+          pedidosFiltrados[0]?.responsavel || "",
+        ]],
+        theme: "grid",
+        styles: {
+          fontSize: 9,
+          fontStyle: "bold",
+          halign: "center",
+          textColor: "#000",
+          lineColor: "#000",
+          lineWidth: 1,
+        },
+        headStyles: estilosHeader,
+      } as any);
+
+      // ======================
+      // SALVAR
+      // ======================
+      doc.save(
+        `pedido ${pedidosFiltrados[0]?.localidade || "cliente"} ${dataPedido}.pdf`
+      );
+    };
+
+    logo.onerror = () => {
+      alert("Erro ao carregar a imagem do logo.");
+    };
+  } catch (err) {
+    console.error("Erro ao gerar PDF:", err);
+    alert("Erro ao gerar PDF. Veja o console.");
+  }
 };
+
+
+
+
 
   const exportarXLSX = () => {
     const dados = pedidosFiltrados.map((p) => ({
@@ -623,9 +713,7 @@ export default function PedidosList() {
               <td>{p.quant_saida}</td>
               <td>{p.responsavel}</td>
               <td>{p.localidade}</td>
-              <td>
-                {p.dia_saida}/{p.mes_saida}
-              </td>
+              <td>{formatarDataPedido(p)}</td>
               <td>{formatarValor(p.valor_unitario_venda)}</td>
               <td>{formatarValor(p.valor_total_saida)}</td>
 
@@ -769,9 +857,10 @@ export default function PedidosList() {
 
                 // depois que adiciona, limpa SOMENTE os campos de item
                 setFormData({
-                  responsavel: responsavelBase,
-                  localidade: lojaBase,
-                });
+                responsavel: responsavelBase,
+                localidade: lojaBase,
+                data_saida: formData.data_saida, // 🔥 mantém a mesma data
+              });
               }}
 
             >

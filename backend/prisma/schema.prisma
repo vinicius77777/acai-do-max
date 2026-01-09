@@ -8,39 +8,42 @@ datasource db {
 }
 
 model estoque_registro {
-  codigoItem             Int      @id @default(autoincrement())
-  descricao              String   @db.VarChar(255)
-  mes_entrada            String?  @db.VarChar(20)
+  codigoItem             Int                @id @default(autoincrement())
+  descricao              String             @db.VarChar(255)
+  mes_entrada            String?            @db.VarChar(20)
   dia_entrada            Int?
   quant_entrada          Int?
-  unidade_entrada        String?  @db.VarChar(10)
-  nota_fiscal            String?  @db.VarChar(50)
-  fornecedor             String?  @db.VarChar(100)
-  valor_total_entrada    Decimal? @db.Decimal(10, 2)
-  data_vencimento        String?  @db.VarChar(20)
+  unidade_entrada        String?            @db.VarChar(10)
+  nota_fiscal            String?            @db.VarChar(50)
+  fornecedor             String?            @db.VarChar(100)
+  valor_total_entrada    Decimal?           @db.Decimal(10, 2)
+  data_vencimento        String?            @db.VarChar(20)
   estoque_quantidade     Int?
-  estoque_unidade        String?  @db.VarChar(10)
-  estoque_valor_unitario Decimal? @db.Decimal(10, 2)
-  valor_venda            Decimal? @db.Decimal(10, 2)
-
-  pedidos pedidos_registro[]
+  estoque_unidade        String?            @db.VarChar(10)
+  estoque_valor_unitario Decimal?           @db.Decimal(10, 2)
+  valor_venda            Decimal?           @db.Decimal(10, 2)
+  ano_entrada            Int?
+  pedidos                pedidos_registro[]
 }
 
 model pedidos_registro {
-  id                     Int      @id @default(autoincrement())
+  id                     Int               @id @default(autoincrement())
   estoqueId              Int?
-  descricao              String   @db.VarChar(255)
-  mes_saida              String?  @db.VarChar(20)
+  descricao              String            @db.VarChar(255)
+  mes_saida              String?           @db.VarChar(20)
   dia_saida              Int?
   quant_saida            Int?
-  responsavel            String?  @db.VarChar(50)
-  saida_loja             String?  @db.VarChar(100)
-  localidade             String?  @db.VarChar(100)
-  valor_unitario_venda   Decimal? @db.Decimal(10, 2)
-  valor_total_saida      Decimal? @db.Decimal(10, 2)
-  margem_aplicada        String?  @db.VarChar(10)
-  lucratividade_unitario Decimal? @db.Decimal(10, 2)
-  lucratividade_total    Decimal? @db.Decimal(10, 2)
+  responsavel            String?           @db.VarChar(50)
+  saida_loja             String?           @db.VarChar(100)
+  localidade             String?           @db.VarChar(100)
+  valor_unitario_venda   Decimal?          @db.Decimal(10, 2)
+  valor_total_saida      Decimal?          @db.Decimal(10, 2)
+  margem_aplicada        String?           @db.VarChar(10)
+  lucratividade_unitario Decimal?          @db.Decimal(10, 2)
+  lucratividade_total    Decimal?          @db.Decimal(10, 2)
+  pago                   Boolean?          @default(false)
+  ano_saida              Int?
+  estoque                estoque_registro? @relation(fields: [estoqueId], references: [codigoItem])
 
-  estoque estoque_registro? @relation(fields: [estoqueId], references: [codigoItem])
+  @@index([estoqueId], map: "pedidos_registro_estoqueId_fkey")
 }

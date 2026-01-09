@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 import dotenv from "dotenv";
 import cors from "cors";
 
@@ -38,40 +39,40 @@ app.post("/estoque", async (req: Request, res: Response) => {
       where: { descricao },
     });
 
-   if (itemExistente) {
-  const novaQuantidadeFisica =
-    (itemExistente.estoque_quantidade || 0) + quantidadeEntrada;
+    if (itemExistente) {
+      const novaQuantidadeFisica =
+        (itemExistente.estoque_quantidade || 0) + quantidadeEntrada;
 
-  const valorUnitario =
-    quantidadeEntrada > 0 ? valorTotalEntrada / quantidadeEntrada : 0;
+      const valorUnitario =
+        quantidadeEntrada > 0 ? valorTotalEntrada / quantidadeEntrada : 0;
 
-  const atualizado = await prisma.estoque_registro.update({
-    where: { codigoItem: itemExistente.codigoItem },
-    data: {
-      // 🔥 quantidade física acumula
-      estoque_quantidade: novaQuantidadeFisica,
+      const atualizado = await prisma.estoque_registro.update({
+        where: { codigoItem: itemExistente.codigoItem },
+        data: {
+          // 🔥 quantidade física acumula
+          estoque_quantidade: novaQuantidadeFisica,
 
-      // 🔥 RESET financeiro (última compra manda)
-      quant_entrada: quantidadeEntrada,
-      valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
-      estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
+          // 🔥 RESET financeiro (última compra manda)
+          quant_entrada: quantidadeEntrada,
+          valor_total_entrada: new Decimal(valorTotalEntrada),
+          estoque_valor_unitario: new Decimal(valorUnitario),
 
-      nota_fiscal: data.nota_fiscal || null,
-      fornecedor: data.fornecedor || null,
-      data_vencimento: data.data_vencimento || null,
+          nota_fiscal: data.nota_fiscal || null,
+          fornecedor: data.fornecedor || null,
+          data_vencimento: data.data_vencimento || null,
 
-      // preço de venda só muda se enviar
-      valor_venda: data.valor_venda
-        ? new Prisma.Decimal(Number(data.valor_venda))
-        : itemExistente.valor_venda,
-    },
-  });
+          // preço de venda só muda se enviar
+          valor_venda: data.valor_venda
+              ? new Decimal(Number(data.valor_venda))
+              : itemExistente.valor_venda,
+        },
+      });
 
-  return res.json({
-    message: "Estoque atualizado (entrada resetada corretamente).",
-    item: atualizado,
-  });
-}
+      return res.json({
+        message: "Estoque atualizado (entrada resetada corretamente).",
+        item: atualizado,
+      });
+    }
 
 
     /* ITEM NOVO */
@@ -84,14 +85,14 @@ app.post("/estoque", async (req: Request, res: Response) => {
         unidade_entrada: data.unidade_entrada || null,
         nota_fiscal: data.nota_fiscal || null,
         fornecedor: data.fornecedor || null,
-        valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
+        valor_total_entrada: new Decimal(valorTotalEntrada),
         data_vencimento: data.data_vencimento || null,
         estoque_quantidade: quantidadeEntrada,
         estoque_unidade:
           data.estoque_unidade || data.unidade_entrada || null,
-        estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
+        estoque_valor_unitario: new Decimal(valorUnitario),
         valor_venda: data.valor_venda
-          ? new Prisma.Decimal(Number(data.valor_venda))
+          ? new Decimal(Number(data.valor_venda))
           : null,
       },
     });
@@ -158,11 +159,11 @@ app.put("/estoque/:codigoItem", async (req: Request, res: Response) => {
 
         // 🔥 RESET financeiro
         quant_entrada: quantidadeEntrada,
-        valor_total_entrada: new Prisma.Decimal(valorTotalEntrada),
-        estoque_valor_unitario: new Prisma.Decimal(valorUnitario),
+        valor_total_entrada: new Decimal(valorTotalEntrada),
+        estoque_valor_unitario: new Decimal(valorUnitario),
 
         valor_venda: data.valor_venda
-          ? new Prisma.Decimal(Number(data.valor_venda))
+          ? new Decimal(Number(data.valor_venda))
           : itemAtual.valor_venda,
       },
     });
@@ -205,51 +206,51 @@ app.post("/pedidos/prever", async (req: Request, res: Response) => {
 
     let valorUnitarioVenda = item ? Number(item.valor_venda || 0) : 0;
     let valorUnitarioCusto = item ? Number(item.estoque_valor_unitario || 0) : 0;
-    
+
 
     // cálculo inicial
 
-   // identificar se precisa aplicar desconto especial
-const isDescontoCliente =
-  (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
-  (responsavel === "Ericson" && saida_loja === "Estação Açaí");
+    // identificar se precisa aplicar desconto especial
+    const isDescontoCliente =
+      (responsavel === "Rodrigo" && saida_loja === "Barra Açaí") ||
+      (responsavel === "Ericson" && saida_loja === "Estação Açaí");
 
-const nomeLower = descricaoTrim.toLowerCase();
+    const nomeLower = descricaoTrim.toLowerCase();
 
-// itens que NÃO recebem desconto normal
-const isSemDesconto =
-  nomeLower.includes("caixa de papelão") ||
-  nomeLower.includes("caixa papelão") ||
-  nomeLower.includes("caixa papelon");
+    // itens que NÃO recebem desconto normal
+    const isSemDesconto =
+      nomeLower.includes("caixa de papelão") ||
+      nomeLower.includes("caixa papelão") ||
+      nomeLower.includes("caixa papelon");
 
-let descontoAplicado = false;
+    let descontoAplicado = false;
 
-// 🔥 REGRA ESPECIAL: Rodrigo + Barra Açaí + qualquer item contendo "aça"
-if (
-  responsavel === "Rodrigo" &&
-  saida_loja === "Barra Açaí" &&
-  nomeLower.includes("aça")
-) {
-  valorUnitarioVenda = 122.50;
-  descontoAplicado = true;
+    // 🔥 REGRA ESPECIAL: Rodrigo + Barra Açaí + qualquer item contendo "aça"
+    if (
+      responsavel === "Rodrigo" &&
+      saida_loja === "Barra Açaí" &&
+      nomeLower.includes("aça")
+    ) {
+      valorUnitarioVenda = 122.50;
+      descontoAplicado = true;
 
-} else if (item && isDescontoCliente && !isSemDesconto) {
-  // ⭐ regra normal de desconto (50% do lucro)
-  const lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
-  const metadeLucro = lucroUnitario * 0.5;
-  valorUnitarioVenda = valorUnitarioCusto + metadeLucro;
-  descontoAplicado = true;
-}
+    } else if (item && isDescontoCliente && !isSemDesconto) {
+      // ⭐ regra normal de desconto (50% do lucro)
+      const lucroUnitario = valorUnitarioVenda - valorUnitarioCusto;
+      const metadeLucro = lucroUnitario * 0.5;
+      valorUnitarioVenda = valorUnitarioCusto + metadeLucro;
+      descontoAplicado = true;
+    }
 
-// arredondar
-valorUnitarioVenda = Number(valorUnitarioVenda.toFixed(2));
-const valorTotal = Number((valorUnitarioVenda * quantidade).toFixed(2));
+    // arredondar
+    valorUnitarioVenda = Number(valorUnitarioVenda.toFixed(2));
+    const valorTotal = Number((valorUnitarioVenda * quantidade).toFixed(2));
 
-return res.json({
-  valor_unitario_venda: valorUnitarioVenda,
-  valor_total_saida: valorTotal,
-  descontoAplicado,
-});
+    return res.json({
+      valor_unitario_venda: valorUnitarioVenda,
+      valor_total_saida: valorTotal,
+      descontoAplicado,
+    });
   } catch (error) {
     console.error("❌ Erro ao prever pedido:", error);
     return res.status(500).json({ error: "Erro ao prever pedido." });
@@ -269,22 +270,31 @@ app.post("/pedidos", async (req: Request, res: Response) => {
       responsavel,
       saida_loja,
       localidade,
-      valor_unitario_venda, 
-      dia_saida,   // 👈 novo
+      valor_unitario_venda,
+      dia_saida,
       mes_saida,
+      ano_saida, // ✅ ADICIONAR
     } = req.body;
 
+
     const agora = new Date();
+    const diaFinal = Number(
+      dia_saida && String(dia_saida).length > 0
+        ? String(dia_saida).padStart(2, "0")
+        : String(agora.getDate()).padStart(2, "0")
+    );
 
-  const diaFinal =
-    dia_saida && Number(dia_saida) > 0
-      ? Number(dia_saida)
-      : agora.getDate();
+    const mesFinal = Number(
+      mes_saida && String(mes_saida).length > 0
+        ? String(mes_saida).padStart(2, "0")
+        : String(agora.getMonth() + 1).padStart(2, "0")
+    );
 
-  const mesFinal =
-    mes_saida && String(mes_saida).length > 0
-      ? String(mes_saida).padStart(2, "0")
-      : String(agora.getMonth() + 1).padStart(2, "0");
+    const anoFinal =
+      ano_saida && Number(ano_saida) > 0
+        ? Number(ano_saida)
+        : agora.getFullYear();
+
 
 
     const descricaoTrim = String(descricao || "").trim();
@@ -364,16 +374,19 @@ app.post("/pedidos", async (req: Request, res: Response) => {
         responsavel,
         saida_loja,
         localidade,
-        mes_saida: mesFinal,
+
+        mes_saida: String(mesFinal),   
         dia_saida: diaFinal,
-        valor_unitario_venda: new Prisma.Decimal(valorUnitarioVenda),
-        valor_total_saida: new Prisma.Decimal(valorTotalSaida),
-        lucratividade_unitario: new Prisma.Decimal(lucroUnitario),
-        lucratividade_total: new Prisma.Decimal(lucroTotal),
+        ano_saida: anoFinal,
+        valor_unitario_venda: new Decimal(valorUnitarioVenda),
+        valor_total_saida: new Decimal(valorTotalSaida),
+        lucratividade_unitario: new Decimal(lucroUnitario),
+        lucratividade_total: new Decimal(lucroTotal),
         margem_aplicada: margem,
         estoqueId,
       },
     });
+
 
     // 🔥 DESCONTAR DO ESTOQUE
     if (estoqueId && item) {
@@ -391,12 +404,12 @@ app.post("/pedidos", async (req: Request, res: Response) => {
       pedido: novoPedido,
     });
   } catch (error) {
-  console.error("ERRO AO CRIAR PEDIDO:", error);
-  return res.status(500).json({
-    error: "Erro ao criar pedido.",
-    detalhes: error,
-  });
-}
+    console.error("ERRO AO CRIAR PEDIDO:", error);
+    return res.status(500).json({
+      error: "Erro ao criar pedido.",
+      detalhes: error,
+    });
+  }
 });
 
 
@@ -435,8 +448,8 @@ app.put("/pedidos/:id", async (req: Request, res: Response) => {
 
     const estoqueItem = pedidoExistente.estoqueId
       ? await prisma.estoque_registro.findUnique({
-          where: { codigoItem: pedidoExistente.estoqueId },
-        })
+        where: { codigoItem: pedidoExistente.estoqueId },
+      })
       : null;
 
     if (estoqueItem) {
@@ -455,14 +468,20 @@ app.put("/pedidos/:id", async (req: Request, res: Response) => {
         quant_saida: quantSaida,
         responsavel: req.body.responsavel,
         localidade: req.body.localidade,
-        mes_saida: req.body.mes_saida || pedidoExistente.mes_saida,
+        mes_saida: req.body.mes_saida
+          ? String(req.body.mes_saida).padStart(2, "0")
+          : pedidoExistente.mes_saida,
         dia_saida: req.body.dia_saida
-          ? Number(req.body.dia_saida)
-          : pedidoExistente.dia_saida,
-        valor_unitario_venda: new Prisma.Decimal(valorUnitarioVenda),
-        valor_total_saida: new Prisma.Decimal(valorUnitarioVenda * quantSaida),
-        lucratividade_unitario: new Prisma.Decimal(lucroUnitario),
-        lucratividade_total: new Prisma.Decimal(
+        ? Number(req.body.dia_saida)
+        : pedidoExistente.dia_saida,
+
+      ano_saida: req.body.ano_saida
+        ? Number(req.body.ano_saida)
+        : pedidoExistente.ano_saida,
+        valor_unitario_venda: new Decimal(valorUnitarioVenda),
+        valor_total_saida: new Decimal(valorUnitarioVenda * quantSaida),
+        lucratividade_unitario: new Decimal(lucroUnitario),
+        lucratividade_total: new Decimal(
           lucroUnitario * quantSaida
         ),
         margem_aplicada: margem,

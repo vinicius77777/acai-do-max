@@ -11,6 +11,7 @@ interface EstoqueItem {
   descricao?: string;
   mes_entrada?: string;
   dia_entrada?: number;
+  ano_entrada?: number;
   quant_entrada?: number;
   unidade_entrada?: string;
   nota_fiscal?: string;
@@ -22,6 +23,14 @@ interface EstoqueItem {
   estoque_valor_unitario?: number | string;
   valor_venda?: number | string;
 }
+
+const normalizarDescricao = (texto: string) => {
+  return texto
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+};
+
 
 export default function EstoqueList() {
   const [estoque, setEstoque] = useState<EstoqueItem[]>([]);
@@ -36,6 +45,8 @@ export default function EstoqueList() {
   // Fornecedor e notaFiscal fixos do lote (visíveis no modal de adicionar lote)
   const [loteFornecedor, setLoteFornecedor] = useState("");
   const [loteNotaFiscal, setLoteNotaFiscal] = useState("");
+  const [sugestoes, setSugestoes] = useState<string[]>([]);
+
 
   // -------------------------------------------------------
   // BUSCAR ESTOQUE AO INICIAR
@@ -43,6 +54,16 @@ export default function EstoqueList() {
   useEffect(() => {
     buscarEstoque();
   }, []);
+
+  const descricoesExistentes = Array.from(
+  new Set(
+    estoque
+      .map((i) => i.descricao)
+      .filter(Boolean)
+      .map((d) => d!.trim())
+  )
+);
+
 
   const buscarEstoque = async () => {
     try {
@@ -102,6 +123,24 @@ export default function EstoqueList() {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
+
+ const handleChangeDescricao = (value: string) => {
+  setForm({ ...form, descricao: value });
+
+  const normalizada = normalizarDescricao(value);
+
+  if (!normalizada) {
+    setSugestoes([]);
+    return;
+  }
+
+  const filtradas = descricoesExistentes.filter((d) =>
+    normalizarDescricao(d).includes(normalizada)
+  );
+
+  setSugestoes(filtradas.slice(0, 5));
+};
+
 
   // Manipula campos do item do lote
   const handleChangeItemLote = (index: number, name: string, value: any) => {
@@ -173,6 +212,9 @@ export default function EstoqueList() {
         if (payload.valor_venda !== undefined)
           payload.valor_venda = Number(payload.valor_venda);
 
+      payload.descricao = normalizarDescricao(payload.descricao);
+
+
         // 🔥 muito importante! manter o estoque atual
         payload.estoque_quantidade =
           form.estoque_quantidade !== undefined
@@ -240,6 +282,9 @@ export default function EstoqueList() {
     }
   };
 
+
+
+
   // -------------------------------------------------------
   // FILTRO + ORDENAR
   // -------------------------------------------------------
@@ -273,12 +318,16 @@ export default function EstoqueList() {
   };
 
   const formatarDataEntrada = (item: EstoqueItem) => {
-    const dia = item.dia_entrada;
-    const mes = item.mes_entrada;
-    if (!dia || !mes) return "";
-    const ano = new Date().getFullYear();
-    return `${String(dia).padStart(2, "0")}/${mes}/${ano}`;
-  };
+  const dia = item.dia_entrada;
+  const mes = item.mes_entrada;
+  const ano = item.ano_entrada;
+
+  if (!dia || !mes || !ano) return "";
+
+  return `${String(dia).padStart(2, "0")}/${mes}/${ano}`;
+};
+
+
 
   // -------------------------------------------------------
   // EXPORTAÇÃO PDF / EXCEL
@@ -506,8 +555,8 @@ export default function EstoqueList() {
       </div>
 
       {modalAberto && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div className="mmodal-overlay-estoque">
+          <div className="modal-estoque">
             <h3>{editandoItem ? "Editar Item" : "Adicionar Novo Item / Lote"}</h3>
 
             {/* Se estiver editando um item existente, usamos o formulário antigo */}
@@ -588,8 +637,30 @@ export default function EstoqueList() {
                   name="descricao"
                   placeholder="Descrição do item"
                   value={form.descricao || ""}
-                  onChange={handleChange}
+                  autoComplete="off"
+                  onChange={(e) => handleChangeDescricao(e.target.value)}
+                  onBlur={() => setTimeout(() => setSugestoes([]), 150)}
                 />
+
+
+
+                {sugestoes.length > 0 && (
+                  <div className="sugestoes-box">
+                    {sugestoes.map((s, i) => (
+                      <div
+                        key={i}
+                        className="sugestao-item"
+                        onClick={() => {
+                          setForm({ ...form, descricao: s });
+                          setSugestoes([]);
+                        }}
+                      >
+                        {s}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
 
                 <input
                   type="number"
